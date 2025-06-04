@@ -1,0 +1,219 @@
+#!/bin/bash
+
+# === CONFIGURATION ===
+TELEGRAM_BOT_TOKEN="<ENTER IT HERE>"
+CHAT_ID="<ENTER IT HERE>"
+THRESHOLD=1000   # Block lag alert threshold
+BALANCE_THRESHOLD=100  # RBNT voting balance alert threshold 
+VOTING_ADDRESS="<ENTER IT HERE>"
+SIGNING_ADDRESS="<ENTER IT HERE>"
+NODE_ENDPOINT="https://localhost:8545"
+CHAIN_ENDPOINT="https://governors.mainnet.redbelly.network"
+DOMAIN="<ENTER IT HERE>"
+
+# === FETCH BLOCK HEIGHTS ===
+CHAIN_BLOCK=$(curl -s -k --location "$CHAIN_ENDPOINT" \
+  --header 'Content-Type: application/json' \
+  --data '{"jsonrpc":"2.0", "method":"eth_blockNumber", "params":[], "id":1}' | \
+  jq -r '.result' | xargs printf "%d")
+
+NODE_BLOCK=$(curl -s -k --location "$NODE_ENDPOINT" \
+  --header 'Content-Type: application/json' \
+  --data '{"jsonrpc":"2.0", "method":"eth_blockNumber", "params":[], "id":1}' | \
+  jq -r '.result' | xargs printf "%d")
+
+DIFF=$((CHAIN_BLOCK - NODE_BLOCK))
+
+# === CHECK SYNC STATUS ===
+SYNC_STATUS=$(curl -s -k --location "$NODE_ENDPOINT" \
+  --header 'Content-Type: application/json' \
+  --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' | jq -r '.result')
+
+if [ "$SYNC_STATUS" = "false" ]; then
+  SYNC_MESSAGE="✅ Node is fully synced"
+  SYNC_HEALTH=true
+else
+  SYNC_MESSAGE="⚠️ Node is syncing or NOT synced"
+  SYNC_HEALTH=false
+fi
+
+# === GOVERNOR CHECK ===
+gov_check() {
+  IS_GOVERNOR_VALUE=$(curl -s http://localhost:8080/metrics | grep 'is_governor ' | grep -v '^#' | awk '{print $2}')
+if [ -z "$IS_GOVERNOR_VALUE" ]; then
+    echo "❌ Not Available"
+  elif [ "$IS_GOVERNOR_VALUE" -eq 0 ]; then
+    echo "🟡 Candidate"
+  elif [ "$IS_GOVERNOR_VALUE" -eq 1 ]; then
+    echo "🟢 Governor"
+  else
+    echo "❓ Unknown ($IS_GOVERNOR_VALUE)"
+  fi
+}
+
+GOVERNOR_STATUS=$(gov_check)
+
+# === SYSTEM METRICS ===
+
+# CPU usage %
+CPU_USAGE=$(top -bn2 | grep "Cpu(s)" | tail -n1 | awk -F'id,' '{ split($1, vs, ","); v=vs[length(vs)]; sub("%", "", v); cpu_used=100 - v; printf("%.2f", cpu_used)}')
+
+# Memory usage
+MEM_TOTAL_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+MEM_TOTAL_MB=$(( MEM_TOTAL_KB / 1024 ))
+MEM_USED_KB=$(grep MemAvailable /proc/meminfo | awk '{print $2}')
+MEM_USED_MB=$(( (MEM_TOTAL_KB - MEM_USED_KB) / 1024 ))
+MEM_USAGE_PERCENT=$(free | awk '/Mem:/ {printf("%.2f", $3/$2 * 100.0)}')
+
+format_mem() {
+  local used_mb=$1
+  local total_mb=$2
+  if [ "$used_mb" -ge 1024 ]; then
+    used_gb=$(awk "BEGIN {printf \"%.2f\", $used_mb/1024}")
+    total_gb=$(awk "BEGIN {printf \"%.2f\", $total_mb/1024}")
+    echo "$used_gb GB / $total_gb GB ($MEM_USAGE_PERCENT%)"
+  else
+    echo "$used_mb MB / $total_mb MB ($MEM_USAGE_PERCENT%)"
+  fi
+}
+MEM_USED_DISPLAY=$(format_mem $MEM_USED_MB $MEM_TOTAL_MB)
+
+# Disk usage
+DISK_TOTAL_KB=$(df / --output=size | tail -1)
+DISK_AVAIL_KB=$(df / --output=avail | tail -1)
+DISK_TOTAL_MB=$(( DISK_TOTAL_KB / 1024 ))
+DISK_USED_MB=$(( DISK_TOTAL_MB - (DISK_AVAIL_KB / 1024) ))
+DISK_USAGE_PERCENT=$(df / --output=pcent | tail -1 | tr -d '%')
+
+format_disk() {
+  local used_mb=$1
+  local total_mb=$2
+  if [ "$used_mb" -ge 1024 ]; then
+    used_gb=$(awk "BEGIN {printf \"%.2f\", $used_mb/1024}")
+    total_gb=$(awk "BEGIN {printf \"%.2f\", $total_mb/1024}")
+    echo "$used_gb GB / $total_gb GB ($DISK_USAGE_PERCENT%)"
+  else
+    echo "$used_mb MB / $total_mb MB ($DISK_USAGE_PERCENT%)"
+  fi
+}
+DISK_USED_DISPLAY=$(format_disk $DISK_USED_MB $DISK_TOTAL_MB)
+
+# CPU load
+CPU_LOAD_AVG=$(awk '{print $1}' /proc/loadavg)
+
+# === RBNT BALANCES ===
+# === RBNT BALANCES ===
+get_balance() {
+  local address=$1
+  local wei_hex=$(curl -s -k --location "https://governors.mainnet.redbelly.network" \
+    --header 'Content-Type: application/json' \
+    --data "{\"jsonrpc\":\"2.0\", \"method\":\"eth_getBalance\", \"params\":[\"$address\", \"latest\"], \"id\":1}" | jq -r '.result')
+  
+  # Convert hex string (remove 0x) to decimal
+  local wei_dec=$(printf "%d" "$((16#${wei_hex:2}))")
+  
+  # Convert Wei to RBNT using bc for decimals
+  local rbnt_balance=$(echo "scale=6; $wei_dec / 1000000000000000000" | bc)
+  
+  echo $rbnt_balance
+}
+
+VOTING_BALANCE=$(get_balance $VOTING_ADDRESS)
+SIGNING_BALANCE=$(get_balance $SIGNING_ADDRESS)
+
+echo "Voting address balance: $VOTING_BALANCE RBNT"
+echo "Signing address balance: $SIGNING_BALANCE RBNT"
+
+# === SSL CERT EXPIRY ===
+SSL_EXPIRY=$(echo | openssl s_client -servername $DOMAIN -connect $DOMAIN:443 2>/dev/null | openssl x509 -noout -enddate | cut -d= -f2)
+if [ -n "$SSL_EXPIRY" ]; then
+  SSL_EXPIRY_EPOCH=$(date -d "$SSL_EXPIRY" +%s)
+  NOW_EPOCH=$(date +%s)
+  DAYS_LEFT=$(( (SSL_EXPIRY_EPOCH - NOW_EPOCH) / 86400 ))
+else
+  DAYS_LEFT="N/A"
+fi
+
+
+# === NODE PROCESS STATUS ===
+
+NODE_PROCESS_NAME="rbbc"
+if pgrep -x "$NODE_PROCESS_NAME" > /dev/null; then
+  NODE_PROC_STATUS="✅ Running"
+else
+  NODE_PROC_STATUS="❌ Not Running"
+fi
+
+echo "NODE_PROC_STATUS=$NODE_PROC_STATUS"
+echo "SYNC_HEALTH=$SYNC_HEALTH"
+
+# Check if node is syncing
+SYNC_STATUS=$(curl -s -k --location "$NODE_ENDPOINT" \
+  --header 'Content-Type: application/json' \
+  --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' | jq -r '.result')
+
+if [ "$SYNC_STATUS" = "false" ]; then
+  SYNC_MESSAGE="✅ Node is fully synced"
+  SYNC_HEALTH="true"
+else
+  SYNC_MESSAGE="⚠️ Node is syncing or NOT synced"
+  SYNC_HEALTH="false"
+fi
+
+
+
+# === BUILD STATUS MESSAGE ===
+STATUS="📊 *Redbelly Node Status Update*
+
+🔗 *Chain Block:*       $CHAIN_BLOCK  
+🖥️ *Node Block:*        $NODE_BLOCK  
+⏳ *Blocks Behind:*     $DIFF  
+
+💻 *CPU Usage:*         $CPU_USAGE%  
+🧠 *Memory Usage:*      $MEM_USED_DISPLAY  
+💾 *Disk Usage:*        $DISK_USED_DISPLAY  
+⚙️ *CPU Load Avg (1m):* $CPU_LOAD_AVG
+
+💸 *Voting Balance:*    $VOTING_BALANCE RBNT  
+🔏 *Signing Balance:*   $SIGNING_BALANCE RBNT
+
+🔐 *SSL Cert Validity:* $DAYS_LEFT days left  
+$NODE_HEALTH  
+🔄 *Sync Status:*       $SYNC_MESSAGE
+👑 *Governor Status:*   $GOVERNOR_STATUS
+
+👤 *Author:* moontrader"
+
+
+# === SEND TELEGRAM MESSAGE ===
+curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+  -d chat_id="$CHAT_ID" \
+  -d parse_mode="Markdown" \
+  -d text="$STATUS" > /dev/null
+
+# === ALERTS ===
+if [ "$DIFF" -ge "$THRESHOLD" ]; then
+  curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+    -d chat_id="$CHAT_ID" \
+    -d parse_mode="Markdown" \
+    -d text="🚨 *Redbelly Node Alert:*
+Node is *$DIFF* blocks behind.
+🧱 Chain: $CHAIN_BLOCK
+📟 Node:  $NODE_BLOCK" > /dev/null
+fi
+
+if (( $(echo "$VOTING_BALANCE < $BALANCE_THRESHOLD" | bc -l) )); then
+  curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+    -d chat_id="$CHAT_ID" \
+    -d parse_mode="Markdown" \
+    -d text="⚠️ *Voting Balance Alert:*
+Your voting address balance is low: *$VOTING_BALANCE RBNT*
+Threshold: $BALANCE_THRESHOLD RBNT" > /dev/null
+fi
+
+if [ "$NODE_PROC_STATUS" != "✅ Running" ] || [ "$SYNC_HEALTH" = false ]; then
+  curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+    -d chat_id="$CHAT_ID" \
+    -d parse_mode="Markdown" \
+    -d text="🚨 *Node Health Alert:*
+
