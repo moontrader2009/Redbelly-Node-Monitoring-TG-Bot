@@ -51,11 +51,6 @@ Follow these steps to set up the monitoring script on your node:
 ```bash
 nano redbelly_monitor.sh
 ```
-### 3. Paste the script content
-
-```bash
-nano redbelly_monitor.sh
-```
-
-
-
+### 3. Paste the script content  
+- Copy the script from this GitHub link:
+- Paste it into the terminal `(Ctrl + Shift + V)`
