@@ -41,10 +41,21 @@ A Bash script to monitor the health and performance of a Redbelly blockchain nod
 - Look for `"chat":{"id":YOUR_CHAT_ID}` in the JSON response  
 - Save the `YOUR_CHAT_ID`
 
-### 3. Clone this Repository
+### 📝 Step-by-Step: Create `redbelly_monitor.sh` and Configure
+
+Follow these steps to set up the monitoring script on your node:
+
+### 1. Open your terminal
+### 2. Create or open the script file using nano
 
 ```bash
-git clone https://github.com/yourusername/redbelly-node-telegram-monitor.git
-cd redbelly-node-telegram-monitor
+nano redbelly_monitor.sh
+```
+### 3. Paste the script content
+
+```bash
+nano redbelly_monitor.sh
+```
+
 
 
