@@ -24,7 +24,20 @@ A Bash script to monitor the health and performance of a Redbelly blockchain nod
   - Node not fully synced  
 
 ---
-
+## ⚙️ Configuring Redbelly Node HTTP API Access
+To enable the Redbelly node HTTP RPC interface and allow external access, the following flags must be added to the node startup command:
+```bash
+--http --http.addr=0.0.0.0 --http.corsdomain=* --http.vhosts=* --http.port=8545 --http.api eth,txpool,net,web3,rbn
+```
+```bash
+--http --http.addr=0.0.0.0 --http.corsdomain=* --http.vhosts=* --http.port=8545 --http.api eth,txpool,net,web3,rbn
+```
+### Steps to add the flags:
+- Edit the systemd service file:
+```bash
+sudo nano /etc/systemd/system/redbelly.service
+```
+---
 ## 🚀 Setup & Usage
 
 ### 1. Create a Telegram Bot
@@ -54,3 +67,40 @@ nano redbelly_monitor.sh
 ### 3. Paste the script content  
 - Copy the script from this [GitHub link](https://github.com/moontrader2009/Redbelly-Node-Monitoring-TG-Bot/blob/main/Redbelly%20Node%20Monitoring%20Bot.txt)  
 - Paste it into the terminal `(Ctrl + Shift + V)`
+  
+### 4. Configure the script
+- Scroll to the `# === CONFIGURATION ===` section at the top of the script and update the following values:
+```bash
+TELEGRAM_BOT_TOKEN="your_telegram_bot_token"
+CHAT_ID="your_telegram_chat_id"
+THRESHOLD=1000
+BALANCE_THRESHOLD=100
+VOTING_ADDRESS="your_voting_address"
+SIGNING_ADDRESS="your_signing_address"
+NODE_ENDPOINT="https://localhost:8545"
+CHAIN_ENDPOINT="https://governors.mainnet.redbelly.network"
+DOMAIN="yourdomain.com"
+```
+### 5. Save and exit nano
+- Press `Ctrl + O` to save
+- Press `Enter` to confirm
+- Press `Ctrl + X` to exit
+- 
+### 6. Make the script executable
+```bash
+chmod +x redbelly_monitor.sh
+```
+### 7. Run the script
+```bash
+./redbelly_monitor.sh
+```
+### ⏱️ Optional: Automate with Cron
+To run the script at regular intervals:
+```bash
+crontab -e
+```
+Add this line to run every 5 minutes (adjust as needed):
+```bash
+*/5 * * * * /path/to/redbelly_monitor.sh
+```
+
