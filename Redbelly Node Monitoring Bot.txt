@@ -1,15 +1,15 @@
 #!/bin/bash
 
 # === CONFIGURATION ===
-TELEGRAM_BOT_TOKEN="<ENTER IT HERE>"
-CHAT_ID="<ENTER IT HERE>"
-THRESHOLD=1000   # Block lag alert threshold
-BALANCE_THRESHOLD=100  # RBNT voting balance alert threshold 
-VOTING_ADDRESS="<ENTER IT HERE>"
-SIGNING_ADDRESS="<ENTER IT HERE>"
+TELEGRAM_BOT_TOKEN="8144159645:AAF555wJRICSwFBjuMMjvXZV5KNNHT7oNIA"
+CHAT_ID="1298585066"
+THRESHOLD=10000000000000           # Block lag alert threshold
+BALANCE_THRESHOLD=100    # RBNT voting balance alert threshold
+VOTING_ADDRESS="0xdf6f5ffa9111a4A5990F464E8f7C7f2BC94b09DD"
+SIGNING_ADDRESS="0x9E00b6c34110ad2b9884b3bd6487De450D4Fb49A"
 NODE_ENDPOINT="https://localhost:8545"
 CHAIN_ENDPOINT="https://governors.mainnet.redbelly.network"
-DOMAIN="<ENTER IT HERE>"
+DOMAIN="redbellynode1.xyz"
 
 # === FETCH BLOCK HEIGHTS ===
 CHAIN_BLOCK=$(curl -s -k --location "$CHAIN_ENDPOINT" \
@@ -40,7 +40,7 @@ fi
 # === GOVERNOR CHECK ===
 gov_check() {
   IS_GOVERNOR_VALUE=$(curl -s http://localhost:8080/metrics | grep 'is_governor ' | grep -v '^#' | awk '{print $2}')
-if [ -z "$IS_GOVERNOR_VALUE" ]; then
+  if [ -z "$IS_GOVERNOR_VALUE" ]; then
     echo "❌ Not Available"
   elif [ "$IS_GOVERNOR_VALUE" -eq 0 ]; then
     echo "🟡 Candidate"
@@ -98,31 +98,29 @@ format_disk() {
 }
 DISK_USED_DISPLAY=$(format_disk $DISK_USED_MB $DISK_TOTAL_MB)
 
-# CPU load
+# CPU load average (1 minute)
 CPU_LOAD_AVG=$(awk '{print $1}' /proc/loadavg)
 
 # === RBNT BALANCES ===
-# === RBNT BALANCES ===
 get_balance() {
-  local address=$1
-  local wei_hex=$(curl -s -k --location "https://governors.mainnet.redbelly.network" \
+  local addr=$1
+  local hex_balance=$(curl -s -k --location "$CHAIN_ENDPOINT" \
     --header 'Content-Type: application/json' \
-    --data "{\"jsonrpc\":\"2.0\", \"method\":\"eth_getBalance\", \"params\":[\"$address\", \"latest\"], \"id\":1}" | jq -r '.result')
-  
-  # Convert hex string (remove 0x) to decimal
-  local wei_dec=$(printf "%d" "$((16#${wei_hex:2}))")
-  
-  # Convert Wei to RBNT using bc for decimals
-  local rbnt_balance=$(echo "scale=6; $wei_dec / 1000000000000000000" | bc)
-  
-  echo $rbnt_balance
+    --data "{\"jsonrpc\":\"2.0\", \"method\":\"eth_getBalance\", \"params\":[\"$addr\", \"latest\"], \"id\":1}" | jq -r '.result')
+
+  if [[ "$hex_balance" == "null" || -z "$hex_balance" ]]; then
+    echo "0"
+    return
+  fi
+
+  local wei=${hex_balance#0x}
+  local dec_balance=$(printf "%d\n" "0x$wei")
+  local rbnt_balance=$(echo "scale=6; $dec_balance / 1000000000000000000" | bc)
+  echo "$rbnt_balance"
 }
 
-VOTING_BALANCE=$(get_balance $VOTING_ADDRESS)
-SIGNING_BALANCE=$(get_balance $SIGNING_ADDRESS)
-
-echo "Voting address balance: $VOTING_BALANCE RBNT"
-echo "Signing address balance: $SIGNING_BALANCE RBNT"
+VOTING_BALANCE=$(get_balance "$VOTING_ADDRESS")
+SIGNING_BALANCE=$(get_balance "$SIGNING_ADDRESS")
 
 # === SSL CERT EXPIRY ===
 SSL_EXPIRY=$(echo | openssl s_client -servername $DOMAIN -connect $DOMAIN:443 2>/dev/null | openssl x509 -noout -enddate | cut -d= -f2)
@@ -134,33 +132,13 @@ else
   DAYS_LEFT="N/A"
 fi
 
-
 # === NODE PROCESS STATUS ===
-
 NODE_PROCESS_NAME="rbbc"
 if pgrep -x "$NODE_PROCESS_NAME" > /dev/null; then
   NODE_PROC_STATUS="✅ Running"
 else
   NODE_PROC_STATUS="❌ Not Running"
 fi
-
-echo "NODE_PROC_STATUS=$NODE_PROC_STATUS"
-echo "SYNC_HEALTH=$SYNC_HEALTH"
-
-# Check if node is syncing
-SYNC_STATUS=$(curl -s -k --location "$NODE_ENDPOINT" \
-  --header 'Content-Type: application/json' \
-  --data '{"jsonrpc":"2.0","method":"eth_syncing","params":[],"id":1}' | jq -r '.result')
-
-if [ "$SYNC_STATUS" = "false" ]; then
-  SYNC_MESSAGE="✅ Node is fully synced"
-  SYNC_HEALTH="true"
-else
-  SYNC_MESSAGE="⚠️ Node is syncing or NOT synced"
-  SYNC_HEALTH="false"
-fi
-
-
 
 # === BUILD STATUS MESSAGE ===
 STATUS="📊 *Redbelly Node Status Update*
@@ -178,12 +156,11 @@ STATUS="📊 *Redbelly Node Status Update*
 🔏 *Signing Balance:*   $SIGNING_BALANCE RBNT
 
 🔐 *SSL Cert Validity:* $DAYS_LEFT days left  
-$NODE_HEALTH  
 🔄 *Sync Status:*       $SYNC_MESSAGE
 👑 *Governor Status:*   $GOVERNOR_STATUS
+🖥️ *Node Process:*      $NODE_PROC_STATUS
 
 👤 *Author:* moontrader"
-
 
 # === SEND TELEGRAM MESSAGE ===
 curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
@@ -216,4 +193,5 @@ if [ "$NODE_PROC_STATUS" != "✅ Running" ] || [ "$SYNC_HEALTH" = false ]; then
     -d chat_id="$CHAT_ID" \
     -d parse_mode="Markdown" \
     -d text="🚨 *Node Health Alert:*
-
+Node process is not running or node is not fully synced.
+Node process status:
