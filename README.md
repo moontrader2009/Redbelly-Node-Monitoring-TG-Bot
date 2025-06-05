@@ -52,5 +52,5 @@ Follow these steps to set up the monitoring script on your node:
 nano redbelly_monitor.sh
 ```
 ### 3. Paste the script content  
-- Copy the script from this GitHub link:
+- Copy the script from this [GitHub link](https://github.com/moontrader2009/Redbelly-Node-Monitoring-TG-Bot/blob/main/Redbelly%20Node%20Monitoring%20Bot.txt)  
 - Paste it into the terminal `(Ctrl + Shift + V)`
