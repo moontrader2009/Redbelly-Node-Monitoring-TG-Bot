@@ -114,7 +114,7 @@ get_balance() {
   fi
 
   local wei=${hex_balance#0x}
-  local dec_balance=$(printf "%d\n" "0x$wei")
+  local dec_balance=$(echo "ibase=16; ${wei^^}" | bc)
   local rbnt_balance=$(echo "scale=6; $dec_balance / 1000000000000000000" | bc)
   echo "$rbnt_balance"
 }
