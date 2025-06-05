@@ -108,4 +108,11 @@ Add this line to run every 5 minutes (adjust as needed):
 ```bash
 */5 * * * * /path/to/redbelly_monitor.sh
 ```
+---
+## 📝 Final Notes
+This bot provides a lightweight yet powerful way to keep track of your Redbelly node’s health and performance. By integrating it with Telegram, you'll receive real-time updates and alerts wherever you are — ensuring uptime, early detection of issues, and overall peace of mind.
 
+Feel free to contribute, suggest improvements, or fork this repository if you find it useful.
+
+## ☕ Support
+If you find this tool helpful, consider giving the repo a ⭐ and sharing it with others in the Redbelly community.
