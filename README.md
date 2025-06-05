@@ -29,13 +29,18 @@ To enable the Redbelly node HTTP RPC interface and allow external access, the fo
 ```bash
 --http --http.addr=0.0.0.0 --http.corsdomain=* --http.vhosts=* --http.port=8545 --http.api eth,txpool,net,web3,rbn
 ```
-```bash
---http --http.addr=0.0.0.0 --http.corsdomain=* --http.vhosts=* --http.port=8545 --http.api eth,txpool,net,web3,rbn
-```
 ### Steps to add the flags:
-- Edit the systemd service file:
+1. Edit the systemd service file:
 ```bash
 sudo nano /etc/systemd/system/redbelly.service
+```
+2. Locate the `ExecStart` line and append the HTTP flags.
+3. Save and exit the file
+4. Reload systemd and restart the node service:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart redbelly.service
+sudo systemctl status redbelly.service
 ```
 ---
 ## 🚀 Setup & Usage
@@ -50,7 +55,7 @@ sudo nano /etc/systemd/system/redbelly.service
 
 - Start a chat with your new bot  
 - Send any message to your bot  
-- Use the following URL in your browser (replace `YOUR_BOT_TOKEN`): https://api.telegram.org/botYOUR_BOT_TOKEN/getUpdates
+- Use the following URL in your browser (replace `YOUR_BOT_TOKEN`): `https://api.telegram.org/botYOUR_BOT_TOKEN/getUpdates`
 - Look for `"chat":{"id":YOUR_CHAT_ID}` in the JSON response  
 - Save the `YOUR_CHAT_ID`
 
