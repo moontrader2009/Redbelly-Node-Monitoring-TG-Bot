@@ -104,6 +104,7 @@ CPU_LOAD_AVG=$(awk '{print $1}' /proc/loadavg)
 # === RBNT BALANCES ===
 get_balance() {
   local addr=$1
+
   local hex_balance=$(curl -s -k --location "$CHAIN_ENDPOINT" \
     --header 'Content-Type: application/json' \
     --data "{\"jsonrpc\":\"2.0\", \"method\":\"eth_getBalance\", \"params\":[\"$addr\", \"latest\"], \"id\":1}" | jq -r '.result')
@@ -113,11 +114,10 @@ get_balance() {
     return
   fi
 
-  local wei=${hex_balance#0x}
-  local dec_balance=$(echo "ibase=16; ${wei^^}" | bc)
-  local rbnt_balance=$(echo "scale=6; $dec_balance / 1000000000000000000" | bc)
+  local rbnt_balance=$(echo "scale=6; ibase=16; ${hex_balance^^}" | sed 's/0X//' | bc | awk '{printf "%.6f", $1 / 1000000000000000000}')
   echo "$rbnt_balance"
 }
+
 
 VOTING_BALANCE=$(get_balance "$VOTING_ADDRESS")
 SIGNING_BALANCE=$(get_balance "$SIGNING_ADDRESS")
@@ -140,27 +140,35 @@ else
   NODE_PROC_STATUS="❌ Not Running"
 fi
 
+# === TIMESTAMP AND UPTIME ===
+CURRENT_TIME=$(date "+%Y-%m-%d %H:%M:%S")
+SYSTEM_UPTIME=$(uptime -p)  # Example: "up 1 hour, 32 minutes"
+
 # === BUILD STATUS MESSAGE ===
 STATUS="📊 *Redbelly Node Status Update*
 
-🔗 *Chain Block:*       $CHAIN_BLOCK  
-🖥️ *Node Block:*        $NODE_BLOCK  
-⏳ *Blocks Behind:*     $DIFF  
+🕒 *Timestamp:*          $CURRENT_TIME  
+🔌 *System Uptime:*      $SYSTEM_UPTIME
 
-💻 *CPU Usage:*         $CPU_USAGE%  
-🧠 *Memory Usage:*      $MEM_USED_DISPLAY  
-💾 *Disk Usage:*        $DISK_USED_DISPLAY  
-⚙️ *CPU Load Avg (1m):* $CPU_LOAD_AVG
+🔗 *Chain Block:*        $CHAIN_BLOCK  
+🖥️ *Node Block:*         $NODE_BLOCK  
+⏳ *Blocks Behind:*      $DIFF  
 
-💸 *Voting Balance:*    $VOTING_BALANCE RBNT  
-🔏 *Signing Balance:*   $SIGNING_BALANCE RBNT
+💻 *CPU Usage:*          $CPU_USAGE%  
+🧠 *Memory Usage:*       $MEM_USED_DISPLAY  
+💾 *Disk Usage:*         $DISK_USED_DISPLAY  
+⚙️ *CPU Load Avg (1m):*  $CPU_LOAD_AVG
 
-🔐 *SSL Cert Validity:* $DAYS_LEFT days left  
-🔄 *Sync Status:*       $SYNC_MESSAGE
-👑 *Governor Status:*   $GOVERNOR_STATUS
-🖥️ *Node Process:*      $NODE_PROC_STATUS
+💸 *Voting Balance:*     $VOTING_BALANCE RBNT  
+🔏 *Signing Balance:*    $SIGNING_BALANCE RBNT
+
+🔐 *SSL Cert Validity:*  $DAYS_LEFT days left  
+🔄 *Sync Status:*        $SYNC_MESSAGE  
+👑 *Governor Status:*    $GOVERNOR_STATUS  
+🖥️ *Node Process:*       $NODE_PROC_STATUS
 
 👤 *Author:* moontrader"
+
 
 # === SEND TELEGRAM MESSAGE ===
 curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
@@ -194,4 +202,10 @@ if [ "$NODE_PROC_STATUS" != "✅ Running" ] || [ "$SYNC_HEALTH" = false ]; then
     -d parse_mode="Markdown" \
     -d text="🚨 *Node Health Alert:*
 Node process is not running or node is not fully synced.
-Node process status:
+
+*Node process status:* $NODE_PROC_STATUS
+*Sync health:* $SYNC_HEALTH" > /dev/null
+fi
+
+
+
