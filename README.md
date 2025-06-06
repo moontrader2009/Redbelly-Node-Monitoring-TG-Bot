@@ -1,4 +1,4 @@
-# 🛡️ Redbelly Node Telegram Monitor Bot
+# 🛡️ Redbelly Node Telegram Monitoring Bot
 
 A Bash script to monitor the health and performance of a Redbelly blockchain node. It sends periodic status updates and critical alerts to a configured Telegram chat for seamless node monitoring.
 
