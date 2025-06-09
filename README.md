@@ -109,6 +109,10 @@ Add this line to run every 5 minutes (adjust as needed):
 */5 * * * * /path/to/redbelly_monitor.sh
 ```
 ---
+### Sample output in Telegram:
+
+![image](https://github.com/user-attachments/assets/d31c1d79-d7eb-4350-a5f2-2aa60e832de5)
+---
 ## 📝 Final Notes
 This bot provides a lightweight yet powerful way to keep track of your Redbelly node’s health and performance. By integrating it with Telegram, you'll receive real-time updates and alerts wherever you are — ensuring uptime, early detection of issues, and overall peace of mind.
 
