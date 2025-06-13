@@ -11,6 +11,17 @@ NODE_ENDPOINT="https://localhost:8545"
 CHAIN_ENDPOINT="https://governors.mainnet.redbelly.network"
 DOMAIN="<ENTER HERE>"
 
+# === DOMAIN VALIDATION ===
+if [[ -z "$DOMAIN" ]]; then
+  echo "❌ ERROR: DOMAIN is not set. Please edit the script and provide your domain."
+  exit 1
+fi
+
+if [[ "$DOMAIN" == www.* ]]; then
+  echo "❌ ERROR: DOMAIN should *not* start with 'www.'. Please remove it."
+  exit 1
+fi
+
 # === FETCH BLOCK HEIGHTS ===
 CHAIN_BLOCK=$(curl -s -k --location "$CHAIN_ENDPOINT" \
   --header 'Content-Type: application/json' \
