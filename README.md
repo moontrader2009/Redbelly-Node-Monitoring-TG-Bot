@@ -106,7 +106,11 @@ crontab -e
 ```
 Add this line to run every 5 minutes (adjust as needed):
 ```bash
-*/5 * * * * /path/to/redbelly_monitor.sh
+*/5 * * * * /bin/bash /root/redbelly_monitor.sh >> /var/log/redbelly_monitor.log 2>&1
+```
+Then run the script
+```bash
+chmod +x /root/redbelly_monitor.sh
 ```
 ---
 ### Sample output in Telegram:
