@@ -7,9 +7,10 @@ THRESHOLD=1000          # Block lag alert threshold
 BALANCE_THRESHOLD=100    # RBNT voting balance alert threshold
 VOTING_ADDRESS="<ENTER HERE>"
 SIGNING_ADDRESS="<ENTER HERE>"
+DOMAIN="<ENTER HERE>"
 NODE_ENDPOINT="https://localhost:8545"
 CHAIN_ENDPOINT="https://governors.mainnet.redbelly.network"
-DOMAIN="<ENTER HERE>"
+
 
 # === DOMAIN VALIDATION ===
 if [[ -z "$DOMAIN" ]]; then
