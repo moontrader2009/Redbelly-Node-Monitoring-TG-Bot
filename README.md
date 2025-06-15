@@ -27,10 +27,7 @@ A Bash script to monitor the health and performance of a Redbelly blockchain nod
 ## ⚙️ Configuring Redbelly Node HTTP API Access
 To enable the Redbelly node HTTP RPC interface and allow external access, the following flags must be added to the node startup command:
 ```bash
---http --http.addr=0.0.0.0 --http.corsdomain=* --http.vhosts=* --http.port=8545 --http.api eth,txpool,net,web3,rbn
-```
-```bash
---metrics --metrics.addr=127.0.0.1 --metrics.port=9080 --prometheus.addr=127.0.0.1
+--http --http.addr=0.0.0.0 --http.corsdomain=* --http.vhosts=* --http.port=8545 --http.api eth,txpool,net,web3,rbn --metrics --metrics.addr=127.0.0.1 --metrics.port=9080 --prometheus.addr=127.0.0.1
 ```
 ### Steps to add the flags:
 1. Edit the systemd service file:
