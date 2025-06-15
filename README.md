@@ -29,6 +29,9 @@ To enable the Redbelly node HTTP RPC interface and allow external access, the fo
 ```bash
 --http --http.addr=0.0.0.0 --http.corsdomain=* --http.vhosts=* --http.port=8545 --http.api eth,txpool,net,web3,rbn
 ```
+```bash
+--metrics --metrics.addr=127.0.0.1 --metrics.port=9080 --prometheus.addr=127.0.0.1
+```
 ### Steps to add the flags:
 1. Edit the systemd service file:
 ```bash
