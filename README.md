@@ -42,6 +42,43 @@ sudo systemctl daemon-reload
 sudo systemctl restart redbelly.service
 sudo systemctl status redbelly.service
 ```
+### Create prometheus configuration file
+For security reasons please don’t allow these ports through firewall.
+
+#### Copy and paste the code to your terminal and press `Enter`
+```bash
+sudo tee prometheus.yml<<EOT
+global:
+  scrape_interval: 60s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+  evaluation_interval: 60s # Evaluate rules every 15 seconds. The default is every 1 minute.
+alerting:
+  alertmanagers:
+    - static_configs:
+      - targets:
+rule_files:
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+  - job_name: 'rbbc'
+    scrape_interval: 60s
+    static_configs:
+      - targets: ['localhost:8080']
+  - job_name: 'geth'
+    scrape_interval: 60s
+    metrics_path: /debug/metrics/prometheus
+    static_configs:
+      - targets: ['localhost:9080']
+  - job_name: 'node-exporter'
+    scrape_interval: 60s
+    static_configs:
+      - targets: ['localhost:9100']
+  - job_name: 'block-tracker'
+    scrape_interval: 60s
+    static_configs:
+      - targets: ['localhost:9101']
+EOT
+```
 ---
 ## 🚀 Setup & Usage
 
