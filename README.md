@@ -15,7 +15,9 @@ A Bash script to monitor the health and performance of a Redbelly blockchain nod
   - Load average  
 - 🔐 Monitor SSL certificate expiration for a specified domain  
 - 👑 Evaluate local governor status via node metrics  
-- 💸 Fetch and report RBNT balances for voting and signing addresses  
+- 💸 Fetch and report RBNT balances for voting and signing addresses
+- 💰 Retrieve real-time RBNT token price in USD via CoinGecko
+- 💎 Calculate and display total RBNT holdings value in USD   
 - 📊 Send detailed status reports to Telegram  
 - 🚨 Send real-time alerts for:  
   - Block lag exceeding threshold  
