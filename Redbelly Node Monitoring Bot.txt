@@ -134,6 +134,19 @@ get_balance() {
 VOTING_BALANCE=$(get_balance "$VOTING_ADDRESS")
 SIGNING_BALANCE=$(get_balance "$SIGNING_ADDRESS")
 
+# === FETCH RBNT TOKEN PRICE AND TOTAL VALUE (USD) ===
+RBNT_PRICE=$(curl -s \
+  "https://api.coingecko.com/api/v3/simple/price?ids=redbelly-network-token&vs_currencies=usd" \
+  | jq -r '.["redbelly-network-token"].usd')
+
+if [[ -z "$RBNT_PRICE" || "$RBNT_PRICE" == "null" ]]; then
+  RBNT_PRICE="N/A"
+  TOTAL_HOLDING="N/A"
+else
+  TOTAL_BALANCE=$(echo "$VOTING_BALANCE + $SIGNING_BALANCE" | bc)
+  TOTAL_HOLDING=$(echo "scale=2; $TOTAL_BALANCE * $RBNT_PRICE" | bc)
+fi
+
 # === SSL CERT EXPIRY ===
 SSL_EXPIRY=$(echo | openssl s_client -servername $DOMAIN -connect $DOMAIN:443 2>/dev/null | openssl x509 -noout -enddate | cut -d= -f2)
 if [ -n "$SSL_EXPIRY" ]; then
@@ -173,6 +186,8 @@ STATUS="📊 *Redbelly Node Status Update*
 
 💸 *Voting Balance:*     $VOTING_BALANCE RBNT  
 🔏 *Signing Balance:*    $SIGNING_BALANCE RBNT
+💰 *RBNT Price:*         \$${RBNT_PRICE}
+💎 *Total Holding:*      \$${TOTAL_HOLDING}
 
 🔐 *SSL Cert Validity:*  $DAYS_LEFT days left  
 🔄 *Sync Status:*        $SYNC_MESSAGE  
