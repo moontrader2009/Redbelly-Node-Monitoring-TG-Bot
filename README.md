@@ -152,7 +152,8 @@ chmod +x /root/redbelly_monitor.sh
 ---
 ### Sample output in Telegram:
 
-![image](https://github.com/user-attachments/assets/d31c1d79-d7eb-4350-a5f2-2aa60e832de5)
+![image](https://github.com/user-attachments/assets/a2ce5695-882e-4c0d-939a-a5253a6ccf3f)
+
 ---
 ## 📝 Final Notes
 This bot provides a lightweight yet powerful way to keep track of your Redbelly node’s health and performance. By integrating it with Telegram, you'll receive real-time updates and alerts wherever you are — ensuring uptime, early detection of issues, and overall peace of mind.
